@@ -7,6 +7,7 @@ import EventsPage from "./pages/EventsPage";
 import PastMeetingsPage from "./pages/PastMeetingsPage";
 import MeetingDetailPage from "./pages/MeetingDetailPage";
 import SettingsPage from "./pages/SettingsPage";
+import { API_URL } from "./config";
 import "./App.css";
 
 export default function App() {
@@ -21,7 +22,7 @@ export default function App() {
     // Also check server for connected accounts (reliable way to detect login)
     (async () => {
       try {
-        const r = await fetch("/api/accounts");
+        const r = await fetch(`${API_URL}/api/accounts`);
         if (r.ok) {
           const j = await r.json();
           if (Array.isArray(j) && j.length > 0) setIsLoggedIn(true);

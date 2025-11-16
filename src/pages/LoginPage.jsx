@@ -1,6 +1,7 @@
 // client/src/pages/LoginPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../config";
 
 // Small helper to present event start times in a readable way.
 function formatDateTime(value) {
@@ -25,7 +26,7 @@ export default function LoginPage({ setIsLoggedIn }) {
   const navigate = useNavigate();
 
   const loadAccounts = useCallback(async () => {
-    const r = await fetch("/api/accounts");
+    const r = await fetch(`${API_URL}/api/accounts`);
     const j = await r.json();
     setAccounts(j);
     // If accounts found, consider the user logged in and navigate to events
@@ -40,19 +41,19 @@ export default function LoginPage({ setIsLoggedIn }) {
   }, [navigate, setIsLoggedIn]);
 
   const loadEvents = useCallback(async () => {
-    const r = await fetch("/api/events");
+    const r = await fetch(`${API_URL}/api/events`);
     const j = await r.json();
     setEvents(j);
   }, []);
 
   useEffect(() => {
-    fetch("/auth/url")
+    fetch(`${API_URL}/auth/url`)
       .then((r) => r.json())
       .then((j) => setAuthUrl(j.url))
       .catch(() => {});
     loadAccounts();
     loadEvents();
-    fetch("/api/notetaker-flags")
+    fetch(`${API_URL}/api/notetaker-flags`)
       .then((r) => r.json())
       .then(setFlags)
       .catch(() => {});
@@ -70,7 +71,7 @@ export default function LoginPage({ setIsLoggedIn }) {
     const poll = setInterval(async () => {
       attempts += 1;
       try {
-        const r = await fetch("/api/accounts");
+        const r = await fetch(`${API_URL}/api/accounts`);
         if (r.ok) {
           const j = await r.json();
           if (Array.isArray(j) && j.length > 0) {
@@ -93,7 +94,7 @@ export default function LoginPage({ setIsLoggedIn }) {
   }
 
   async function toggleFlag(id, v) {
-    await fetch("/api/toggle-notetaker", {
+    await fetch(`${API_URL}/api/toggle-notetaker`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id, enabled: v }),
