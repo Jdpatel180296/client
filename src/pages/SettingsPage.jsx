@@ -1,7 +1,6 @@
 // client/src/pages/SettingsPage.jsx
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { API_URL } from "../config";
 
 export default function SettingsPage() {
   const [searchParams] = useSearchParams();
@@ -38,7 +37,7 @@ export default function SettingsPage() {
 
   async function loadSettings() {
     try {
-      const r = await fetch(`${API_URL}/api/settings`);
+      const r = await fetch("/api/settings");
       const j = await r.json();
       setSettings(j || { join_lead_minutes: 5 });
     } catch (err) {
@@ -48,7 +47,7 @@ export default function SettingsPage() {
 
   async function loadAutomations() {
     try {
-      const r = await fetch(`${API_URL}/api/automations`);
+      const r = await fetch("/api/automations");
       const j = await r.json();
       setAutomations(j);
     } catch (err) {
@@ -59,7 +58,7 @@ export default function SettingsPage() {
 
   async function loadSocialAccounts() {
     try {
-      const r = await fetch(`${API_URL}/api/social-accounts`);
+      const r = await fetch("/api/social-accounts");
       const j = await r.json();
       setSocialAccounts(j);
     } catch (err) {
@@ -70,7 +69,7 @@ export default function SettingsPage() {
   async function saveSettings() {
     setSaving(true);
     try {
-      await fetch(`${API_URL}/api/settings`, {
+      await fetch("/api/settings", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(settings),
@@ -90,7 +89,7 @@ export default function SettingsPage() {
     }
     setCreatingAutomation(true);
     try {
-      const r = await fetch(`${API_URL}/api/automations`, {
+      const r = await fetch("/api/automations", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -114,7 +113,7 @@ export default function SettingsPage() {
     // eslint-disable-next-line no-restricted-globals
     if (!confirm("Delete this automation?")) return;
     try {
-      await fetch(`${API_URL}/api/automations/${id}`, { method: "DELETE" });
+      await fetch(`/api/automations/${id}`, { method: "DELETE" });
       setAutomations(automations.filter((a) => a.id !== id));
     } catch (err) {
       console.error("Error deleting automation:", err);
@@ -213,7 +212,7 @@ export default function SettingsPage() {
                     // eslint-disable-next-line no-restricted-globals
                     if (!confirm("Disconnect LinkedIn account?")) return;
                     try {
-                      await fetch(`${API_URL}/api/social-accounts/linkedin`, {
+                      await fetch("/api/social-accounts/linkedin", {
                         method: "DELETE",
                       });
                       setSocialAccounts(
@@ -230,7 +229,7 @@ export default function SettingsPage() {
                     }
                   } else {
                     try {
-                      const r = await fetch(`${API_URL}/api/auth/linkedin`);
+                      const r = await fetch("/api/auth/linkedin");
                       const j = await r.json();
                       window.location.href = j.url;
                     } catch (err) {
@@ -277,7 +276,7 @@ export default function SettingsPage() {
                     // eslint-disable-next-line no-restricted-globals
                     if (!confirm("Disconnect Facebook account?")) return;
                     try {
-                      await fetch(`${API_URL}/api/social-accounts/facebook`, {
+                      await fetch("/api/social-accounts/facebook", {
                         method: "DELETE",
                       });
                       setSocialAccounts(
@@ -294,7 +293,7 @@ export default function SettingsPage() {
                     }
                   } else {
                     try {
-                      const r = await fetch(`${API_URL}/api/auth/facebook`);
+                      const r = await fetch("/api/auth/facebook");
                       const j = await r.json();
                       window.location.href = j.url;
                     } catch (err) {

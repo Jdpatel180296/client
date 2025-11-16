@@ -1,6 +1,5 @@
 // client/src/pages/EventsPage.jsx
 import React, { useEffect, useState, useRef } from "react";
-import { API_URL } from "../config";
 
 // Format an ISO datetime or date for display. If value is not parseable,
 // return it as-is (so debugging strings still show).
@@ -34,7 +33,7 @@ export default function EventsPage() {
   async function loadEvents() {
     setLoading(true);
     try {
-      const r = await fetch(`${API_URL}/api/events`);
+      const r = await fetch("/api/events");
       const j = await r.json();
       // Server already filters to next 2 months; show all returned events
       const now = new Date();
@@ -61,7 +60,7 @@ export default function EventsPage() {
 
   async function loadFlags() {
     try {
-      const r = await fetch(`${API_URL}/api/notetaker-flags`);
+      const r = await fetch("/api/notetaker-flags");
       const j = await r.json();
       setFlags(j);
     } catch (err) {
@@ -71,7 +70,7 @@ export default function EventsPage() {
 
   async function toggleFlag(id, v) {
     try {
-      await fetch(`${API_URL}/api/toggle-notetaker`, {
+      await fetch("/api/toggle-notetaker", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ id, enabled: v }),
@@ -135,7 +134,7 @@ export default function EventsPage() {
             meetingPayload
           );
 
-          const meetingResp = await fetch(`${API_URL}/api/meetings`, {
+          const meetingResp = await fetch("/api/meetings", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(meetingPayload),
@@ -160,7 +159,7 @@ export default function EventsPage() {
           }
 
           // schedule recall bot
-          const sched = await fetch(`${API_URL}/api/schedule-recall-bot`, {
+          const sched = await fetch("/api/schedule-recall-bot", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ meetingId: ev.id, joinLeadMinutes: 5 }),
@@ -208,7 +207,7 @@ export default function EventsPage() {
       attempts += 1;
       try {
         const r = await fetch(
-          `${API_URL}/api/meetings/${encodeURIComponent(meetingId)}/recall-bots`
+          `/api/meetings/${encodeURIComponent(meetingId)}/recall-bots`
         );
         const j = await r.json();
         console.log(

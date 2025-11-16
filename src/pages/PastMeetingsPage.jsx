@@ -1,7 +1,6 @@
 // client/src/pages/PastMeetingsPage.jsx
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { API_URL } from "../config";
 
 export default function PastMeetingsPage() {
   const [meetings, setMeetings] = useState([]);
@@ -14,7 +13,7 @@ export default function PastMeetingsPage() {
   async function loadMeetings() {
     setLoading(true);
     try {
-      const r = await fetch(`${API_URL}/api/past-meetings`);
+      const r = await fetch("/api/past-meetings");
       const j = await r.json();
       // Sort by date descending (newest first)
       const sorted = j.sort((a, b) => new Date(b.start) - new Date(a.start));

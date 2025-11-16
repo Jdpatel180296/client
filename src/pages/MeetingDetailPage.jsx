@@ -1,7 +1,6 @@
 // client/src/pages/MeetingDetailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { API_URL } from "../config";
 
 export default function MeetingDetailPage() {
   const { id } = useParams();
@@ -25,7 +24,7 @@ export default function MeetingDetailPage() {
 
   async function loadMeeting() {
     try {
-      const r = await fetch(`${API_URL}/api/meetings/${id}`);
+      const r = await fetch(`/api/meetings/${id}`);
       const j = await r.json();
       setMeeting(j);
     } catch (err) {
@@ -36,7 +35,7 @@ export default function MeetingDetailPage() {
 
   async function loadPosts() {
     try {
-      const r = await fetch(`${API_URL}/api/meetings/${id}/posts`);
+      const r = await fetch(`/api/meetings/${id}/posts`);
       const j = await r.json();
       setPosts(j);
     } catch (err) {
@@ -46,7 +45,7 @@ export default function MeetingDetailPage() {
 
   async function loadAutomations() {
     try {
-      const r = await fetch(`${API_URL}/api/automations`);
+      const r = await fetch("/api/automations");
       const j = await r.json();
       setAutomations(j);
     } catch (err) {
@@ -57,7 +56,7 @@ export default function MeetingDetailPage() {
   async function generateEmail() {
     setGeneratingEmail(true);
     try {
-      const r = await fetch(`${API_URL}/api/generate-followup-email`, {
+      const r = await fetch("/api/generate-followup-email", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -77,7 +76,7 @@ export default function MeetingDetailPage() {
   async function generatePost() {
     setGeneratingPost(true);
     try {
-      const r = await fetch(`${API_URL}/api/generate-post`, {
+      const r = await fetch("/api/generate-post", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -99,7 +98,7 @@ export default function MeetingDetailPage() {
 
   async function publishPost(postId) {
     try {
-      const r = await fetch(`${API_URL}/api/posts/${postId}/publish`, {
+      const r = await fetch(`/api/posts/${postId}/publish`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({}),
