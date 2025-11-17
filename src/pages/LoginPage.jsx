@@ -1,85 +1,59 @@
 // client/src/pages/LoginPage.jsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 
-// Small helper to present event start times in a readable way.
-function formatDateTime(value) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return value;
-  try {
-    return d.toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch (err) {
-    return d.toLocaleString();
-  }
-}
-
 export default function LoginPage({ setIsLoggedIn }) {
   const [authUrl, setAuthUrl] = useState(null);
-  const [accounts, setAccounts] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [flags, setFlags] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const loadAccounts = useCallback(async () => {
-    const r = await apiFetch("/api/accounts");
-    const j = await r.json();
-    setAccounts(j);
-    // If accounts found, consider the user logged in and navigate to events
-    if (Array.isArray(j) && j.length > 0) {
-      setIsLoggedIn(true);
-      try {
-        navigate("/events");
-      } catch (err) {
-        // ignore navigation errors in tests
-      }
-    }
-  }, [navigate, setIsLoggedIn]);
-
-  const loadEvents = useCallback(async () => {
-    const r = await apiFetch("/api/events");
-    const j = await r.json();
-    setEvents(j);
-  }, []);
-
   useEffect(() => {
+    // Get Google OAuth URL
     apiFetch("/auth/url")
       .then((r) => r.json())
       .then((j) => setAuthUrl(j.url))
       .catch(() => {});
-    loadAccounts();
-    loadEvents();
-    apiFetch("/api/notetaker-flags")
+
+    // Check if already logged in
+    apiFetch("/api/accounts")
       .then((r) => r.json())
-      .then(setFlags)
+      .then((accounts) => {
+        if (Array.isArray(accounts) && accounts.length > 0) {
+          setIsLoggedIn(true);
+          navigate("/events");
+        }
+      })
       .catch(() => {});
-  }, [loadAccounts, loadEvents]);
+  }, [navigate, setIsLoggedIn]);
 
-  async function linkAccount() {
-    if (!authUrl) return alert("no auth url yet");
-    // Open the OAuth flow in a popup and poll the server for connected accounts.
+  async function handleGoogleLogin() {
+    if (!authUrl) return alert("Authentication URL not ready yet");
+
+    setIsLoading(true);
+
+    // Open OAuth flow in popup
     const popup = window.open(authUrl, "_blank", "width=600,height=700");
-    if (!popup)
+    if (!popup) {
+      setIsLoading(false);
       return alert("Popup blocked. Please allow popups for this site.");
+    }
 
+    // Poll for successful authentication
     let attempts = 0;
-    const maxAttempts = 30; // ~30 seconds
+    const maxAttempts = 30;
     const poll = setInterval(async () => {
       attempts += 1;
       try {
         const r = await apiFetch("/api/accounts");
         if (r.ok) {
-          const j = await r.json();
-          if (Array.isArray(j) && j.length > 0) {
+          const accounts = await r.json();
+          if (Array.isArray(accounts) && accounts.length > 0) {
             clearInterval(poll);
             try {
               popup.close();
             } catch (err) {}
-            setAccounts(j);
+            setIsLoading(false);
             setIsLoggedIn(true);
             navigate("/events");
           }
@@ -89,198 +63,85 @@ export default function LoginPage({ setIsLoggedIn }) {
       }
       if (attempts >= maxAttempts) {
         clearInterval(poll);
+        setIsLoading(false);
       }
     }, 1000);
   }
 
-  async function toggleFlag(id, v) {
-    await apiFetch("/api/toggle-notetaker", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id, enabled: v }),
-    });
-    setFlags((prev) => ({ ...prev, [id]: v }));
-
-    // Mark user as logged in after setting preferences
-    setIsLoggedIn(true);
-  }
-
   return (
-    <div className="page app-container">
-      <h1 className="title">Post-meeting content generator — login</h1>
-      <p className="subtitle">
-        Connect Google accounts and choose which events a notetaker should
-        attend.
-      </p>
-
-      <div style={{ marginBottom: 16 }}>
-        <button onClick={linkAccount} className="btn btn-primary">
-          Sign in with Google
-        </button>
+    <div className="login-container">
+      <div className="login-background">
+        <div className="gradient-orb orb-1"></div>
+        <div className="gradient-orb orb-2"></div>
+        <div className="gradient-orb orb-3"></div>
       </div>
 
-      <section style={{ marginBottom: 20 }}>
-        <h2>Connected accounts</h2>
-        {accounts.length === 0 ? (
-          <div>No accounts connected yet.</div>
-        ) : (
-          <ul>
-            {accounts.map((a) => (
-              <li key={a.email}>{a.email}</li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2>Upcoming events (from all accounts)</h2>
-        <button
-          onClick={loadEvents}
-          className="btn btn-secondary"
-          style={{ marginBottom: 8 }}
-        >
-          Refresh events
-        </button>
-        {events.length === 0 ? (
-          <div>No upcoming events found.</div>
-        ) : (
-          // show max 10 upcoming events and display two cards per row
-          <div
-            className="list-grid"
-            style={{
-              marginTop: 8,
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 12,
-            }}
-          >
-            {events.slice(0, 10).map((e) => (
-              <div key={e.id} className="card">
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <div>
-                    <strong>{e.summary}</strong>
-                    <div className="meta">
-                      {e.accountEmail} • {formatDateTime(e.start)}
-                    </div>
-
-                    {/* Show meeting link if present (hangoutLink, location, conferenceData) */}
-                    {(() => {
-                      const locationLink = e.raw?.location || null;
-                      let entryPointLink = null;
-                      try {
-                        const entryPoints =
-                          e.raw?.conferenceData?.entryPoints || [];
-                        const ep = entryPoints.find((p) => p.uri);
-                        if (ep) entryPointLink = ep.uri;
-                      } catch (err) {
-                        // ignore
-                      }
-                      const link =
-                        e.hangoutLink || locationLink || entryPointLink || null;
-                      if (!link) return null;
-
-                      // determine source field
-                      const source = e.hangoutLink
-                        ? "hangoutLink"
-                        : locationLink
-                        ? "location"
-                        : entryPointLink
-                        ? "conferenceEntryPoint"
-                        : "unknown";
-
-                      const isZoom = link.toLowerCase().includes("zoom");
-
-                      const copyToClipboard = async (text) => {
-                        try {
-                          if (
-                            navigator.clipboard &&
-                            navigator.clipboard.writeText
-                          ) {
-                            await navigator.clipboard.writeText(text);
-                          } else {
-                            const ta = document.createElement("textarea");
-                            ta.value = text;
-                            document.body.appendChild(ta);
-                            ta.select();
-                            document.execCommand("copy");
-                            document.body.removeChild(ta);
-                          }
-                          console.log(
-                            "[LoginPage] Copied link to clipboard:",
-                            text
-                          );
-                        } catch (err) {
-                          console.error("[LoginPage] Copy failed:", err);
-                        }
-                      };
-
-                      return (
-                        <div
-                          className="meta"
-                          style={{
-                            display: "flex",
-                            gap: 8,
-                            alignItems: "center",
-                          }}
-                        >
-                          {isZoom ? (
-                            <span title="Zoom link">🟦 Zoom</span>
-                          ) : (
-                            <span title="Meeting link">🔗 Link</span>
-                          )}
-                          <a
-                            href={link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ wordBreak: "break-all" }}
-                          >
-                            {link}
-                          </a>
-                          <button
-                            onClick={() => copyToClipboard(link)}
-                            className="btn btn-sm"
-                            style={{ marginLeft: 8 }}
-                            title="Copy meeting link"
-                          >
-                            Copy
-                          </button>
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: "#666",
-                              marginLeft: 8,
-                            }}
-                          >
-                            (from: {source})
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <label
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!!flags[e.id]}
-                        onChange={(ev) => toggleFlag(e.id, ev.target.checked)}
-                      />
-                      Notetaker
-                    </label>
-                  </div>
-                </div>
-              </div>
-            ))}
+      <div className="login-content">
+        <div className="login-card">
+          <div className="login-header">
+            <div className="logo-icon">📱</div>
+            <h1 className="login-title">Post-Meeting Generator</h1>
+            <p className="login-subtitle">
+              Transform your meetings into actionable content
+            </p>
           </div>
-        )}
-      </section>
+
+          <div className="login-body">
+            <button
+              onClick={handleGoogleLogin}
+              disabled={isLoading || !authUrl}
+              className="google-login-btn"
+            >
+              <svg className="google-icon" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              {isLoading ? "Connecting..." : "Continue with Google"}
+            </button>
+
+            <div className="login-divider">
+              <span>or</span>
+            </div>
+
+            <div className="feature-list">
+              <div className="feature-item">
+                <span className="feature-icon">🎙️</span>
+                <span className="feature-text">Auto-transcribe meetings</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">✨</span>
+                <span className="feature-text">Generate social posts</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">📧</span>
+                <span className="feature-text">Create follow-up emails</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">🤖</span>
+                <span className="feature-text">AI-powered insights</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="login-footer">
+            <p>Secure authentication with your Google account</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

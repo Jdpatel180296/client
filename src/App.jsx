@@ -1,6 +1,12 @@
 // client/src/App.jsx
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+} from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import EventsPage from "./pages/EventsPage";
@@ -9,6 +15,47 @@ import MeetingDetailPage from "./pages/MeetingDetailPage";
 import SettingsPage from "./pages/SettingsPage";
 import "./App.css";
 import { apiFetch } from "./utils/api";
+
+function Navigation({ isLoggedIn }) {
+  const location = useLocation();
+
+  // Hide navigation on login page
+  if (location.pathname === "/login") {
+    return null;
+  }
+
+  return (
+    <nav className="top-nav">
+      <Link to="/" className="brand">
+        📱 Post-meeting Generator
+      </Link>
+      {isLoggedIn ? (
+        <>
+          <Link to="/events" className="nav-link">
+            Events
+          </Link>
+          <Link to="/past-meetings" className="nav-link">
+            Past Meetings
+          </Link>
+          <Link to="/settings" className="nav-link">
+            Settings
+          </Link>
+        </>
+      ) : (
+        <Link to="/login" className="nav-link">
+          Login
+        </Link>
+      )}
+    </nav>
+  );
+}
+
+function PageWrapper({ children }) {
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
+
+  return <div className={isLoginPage ? "" : "page"}>{children}</div>;
+}
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -36,30 +83,9 @@ export default function App() {
   return (
     <Router>
       <div className="app-container">
-        <nav className="top-nav">
-          <Link to="/" className="brand">
-            📱 Post-meeting Generator
-          </Link>
-          {isLoggedIn ? (
-            <>
-              <Link to="/events" className="nav-link">
-                Events
-              </Link>
-              <Link to="/past-meetings" className="nav-link">
-                Past Meetings
-              </Link>
-              <Link to="/settings" className="nav-link">
-                Settings
-              </Link>
-            </>
-          ) : (
-            <Link to="/login" className="nav-link">
-              Login
-            </Link>
-          )}
-        </nav>
+        <Navigation isLoggedIn={isLoggedIn} />
 
-        <div className="page">
+        <PageWrapper>
           <Routes>
             <Route path="/" element={<HomePage isLoggedIn={isLoggedIn} />} />
             <Route
@@ -76,7 +102,7 @@ export default function App() {
               </>
             )}
           </Routes>
-        </div>
+        </PageWrapper>
       </div>
     </Router>
   );
