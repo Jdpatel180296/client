@@ -3,6 +3,17 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 
+// Platform icon mapper (factored out for reuse)
+function platformIcon(platform) {
+  if (!platform) return "❓";
+  const p = platform.toLowerCase();
+  if (p.includes("zoom")) return "🟦";
+  if (p.includes("teams")) return "🟪";
+  if (p.includes("google") || p.includes("meet")) return "🟩";
+  if (p.includes("video")) return "📹";
+  return "💬";
+}
+
 export default function MeetingDetailPage() {
   const { id } = useParams();
   const [meeting, setMeeting] = useState(null);
@@ -131,7 +142,13 @@ export default function MeetingDetailPage() {
 
   return (
     <div className="page app-container">
-      <h1 className="title">{meeting.summary}</h1>
+      <h1
+        className="title"
+        style={{ display: "flex", gap: 8, alignItems: "center" }}
+      >
+        <span title="Platform">{platformIcon(meeting.platform)}</span>
+        {meeting.summary}
+      </h1>
       <div className="meta" style={{ marginBottom: 20 }}>
         {new Date(meeting.start).toLocaleDateString()} •{" "}
         {new Date(meeting.start).toLocaleTimeString([], {
@@ -252,6 +269,7 @@ export default function MeetingDetailPage() {
                         onClick={() => publishPost(p.id)}
                         className="btn btn-primary"
                         style={{ fontSize: 12 }}
+                        aria-label={`Publish post to ${p.platform}`}
                       >
                         Publish
                       </button>
@@ -260,6 +278,7 @@ export default function MeetingDetailPage() {
                       onClick={() => copyToClipboard(p.content, p.id)}
                       className="btn btn-secondary"
                       style={{ fontSize: 12 }}
+                      aria-label={`Copy post content for ${p.platform}`}
                     >
                       {copiedPostId === p.id ? "Copied!" : "Copy"}
                     </button>
