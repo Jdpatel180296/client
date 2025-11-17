@@ -21,11 +21,11 @@ const mockPosts = [
   },
 ];
 
-let apiFetchCalls = [];
+const mockApiFetchCalls = [];
 
 jest.mock("../utils/api", () => ({
   apiFetch: jest.fn((path, options) => {
-    apiFetchCalls.push({ path, options });
+    mockApiFetchCalls.push({ path, options });
     if (path === "/api/meetings/m1") {
       return Promise.resolve({
         json: () => Promise.resolve(mockMeeting),
@@ -65,7 +65,7 @@ jest.mock("../utils/api", () => ({
 }));
 
 beforeEach(() => {
-  apiFetchCalls = [];
+  mockApiFetchCalls.length = 0;
   Object.assign(navigator, {
     clipboard: {
       writeText: jest.fn(() => Promise.resolve()),
@@ -136,7 +136,7 @@ describe("MeetingDetailPage", () => {
     fireEvent.click(publishBtn);
 
     await waitFor(() => {
-      const publishCall = apiFetchCalls.find(
+      const publishCall = mockApiFetchCalls.find(
         (c) => c.path === "/api/posts/p1/publish"
       );
       expect(publishCall).toBeDefined();

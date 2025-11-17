@@ -7,6 +7,7 @@ import PastMeetingsPage from "../pages/PastMeetingsPage";
 jest.mock("../utils/api", () => ({
   apiFetch: jest.fn(() =>
     Promise.resolve({
+      ok: true,
       json: () =>
         Promise.resolve([
           {

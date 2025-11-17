@@ -26,10 +26,12 @@ export default function PastMeetingsPage() {
     setLoading(true);
     try {
       const r = await apiFetch("/api/past-meetings");
-      const j = await r.json();
-      // Sort by date descending (newest first)
-      const sorted = j.sort((a, b) => new Date(b.start) - new Date(a.start));
-      setMeetings(sorted);
+      if (r.ok) {
+        const j = await r.json();
+        // Sort by date descending (newest first)
+        const sorted = j.sort((a, b) => new Date(b.start) - new Date(a.start));
+        setMeetings(sorted);
+      }
     } catch (err) {
       console.error("Error loading past meetings:", err);
     }
